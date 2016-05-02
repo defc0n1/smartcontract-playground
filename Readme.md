@@ -26,7 +26,7 @@ creates the contract
  source = ...
  contract = eth.compile.solidity(source).TemperatureMeasurement -> ##A or B##
  var abi = eth.contract(contract.info.abiDefinition)
- abi.new(eth.account[1], 0, 30, {from: eth.account[0], data: contract.code, gas: 3000000}, function(e, contract){
+ abi.new(eth.account[1], 0, 30, 10, {from: eth.account[0], data: contract.code, gas: 600000}, function(e, contract){
     if(!e) {
       if(!contract.address) {
         console.log("Contract transaction send: https://testnet.etherscan.io/tx/" + contract.transactionHash + " waiting to be mined...");
@@ -39,35 +39,47 @@ creates the contract
 });
 ```
 
+contract cost A: 556878 gas
+contract cost B: 391544 gas
+
 ## Measurements
-tdb...
 
---> 0x29609ba8f356d63640eacaa1ca89b95ef75c2a69b603439680b95d350e74024c
---> address: 0x18837b1ae794a2ddf1c8947e3b10a6ea88981c77 
+###Send temperature with contract A, everything good:
 
-0x6b9410d01e42368cbf24f899cd271e1ad400b2bf
+tx.reportTemperature.sendTransaction([1,2], [1000,2000], {from:eth.accounts[1], gas: 300000})
+-> cost: 40876 gas
+tx.reportTemperature.sendTransaction([1,2,3], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
+-> cost: 36437 gas
+tx.reportTemperature.sendTransaction([1,2,3,4], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
+-> cost: 37172
+-> 1 more: 735 gas
 
-var writer = abi.at("0x6b9410d01e42368cbf24f899cd271e1ad400b2bf");
-writer.reportTemperature.sendTransaction([1,2], [1000,2000], {from:eth.accounts[1]})
---> 0x952bd27e06f5c3c2b4bb207700c427b58e9b028a1f462100b516f5f8d1f4d4d4
+###Send temperature with contract A, temperature failures:
 
-gas: 34893
-tx.reportTemperature.sendTransaction([1,2,3], [1000,2000,3000], {from:eth.accounts[1]})
---> 0x39d7e4a8c8d1bf6adc47ced5dc686b1a0d7a8a6c6eec9ae5b86b8602ba3470d8
+tx.reportTemperature.sendTransaction([1,31], [1000,2000], {from:eth.accounts[1], gas: 300000})
+-> cost: 76122
+tx.reportTemperature.sendTransaction([1,31,32], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
+-> cost: 57397
+tx.reportTemperature.sendTransaction([1,31,32,33], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
+-> cost: 68662
+-> 1 more: 11265 gas
 
-gas: 40954
+###Send temperature with contract B, everything good:
 
-writer.nrMeasurements()
-writer.success()
+tx.reportTemperature.sendTransaction([1,2], [1000,2000], {from:eth.accounts[1], gas: 300000})
+-> cost: 34812 gas
+tx.reportTemperature.sendTransaction([1,2,3], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
+-> cost: 35547 gas
+tx.reportTemperature.sendTransaction([1,2,3,4], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
+-> cost: 36282 gas
+-> 1 more: 735 gas
 
-per Temp gas ok: 6061
-creation gas: 349579
+###Send temperature with contract B, temperature failures:
 
-writer.reportTemperature.sendTransaction([1,2,3,35], [1000,2000,3000,4000], {from:eth.accounts[1], gas:30000})
-0xa043b91a656a969cd9a734189b934e958d5c7d0ce568b7f182351e807d9bb09e
-gas: 52036 // 11082
-
-
-writer.reportTemperature.sendTransaction([1,2,3,4,5,6,7,8,9,10], [1000,2000,3000,4000,5000,6000,7000,8000,9000,10000], {from:eth.accounts[1]})
-gas: 83446
-*/
+tx.reportTemperature.sendTransaction([1,31], [1000,2000], {from:eth.accounts[1], gas: 300000})
+-> cost: 54976
+tx.reportTemperature.sendTransaction([1,31,32], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
+-> cost: 35475
+tx.reportTemperature.sendTransaction([1,31,32,33], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
+-> cost: 36174
+-> 1 more: 699 gas

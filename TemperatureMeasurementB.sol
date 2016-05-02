@@ -52,8 +52,12 @@ contract TemperatureMeasurementB {
                 }
             }
             /* write state back, this is the expensive work */
-            failures = _failures;
-            measurements = _measurements;
+            if(measurements != _measurements) {
+        	    measurements = _measurements;
+            }
+	        if(failures != _failures) {
+        	    failures = _failures;
+            }
         }
     }
 

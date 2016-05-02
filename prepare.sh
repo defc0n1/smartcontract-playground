@@ -12,20 +12,35 @@ tr --delete '\n' < TemperatureMeasurementB.sol >> tmp.js
 echo '";' >> tmp.js
 
 cat << 'EOF' >> tmp.js
-contract = eth.compile.solidity(sourceA).TemperatureMeasurementA
-var abi = eth.contract(contract.info.abiDefinition)
-abi.new(eth.accounts[1], 0, 30, {from: eth.accounts[0], data: contract.code, gas: 2000000}, function(e, contract){
+contractA = eth.compile.solidity(sourceA).TemperatureMeasurementA
+var abiA = eth.contract(contractA.info.abiDefinition)
+abiA.new(eth.accounts[1], 0, 30, 10, {from: eth.accounts[0], data: contractA.code, gas: 600000}, function(e, contract){
     if(!e) {
       if(!contract.address) {
-        console.log("Contract transaction send: https://testnet.etherscan.io/tx/" + contract.transactionHash + " - waiting to be mined...");
+        console.log("Contract A transaction send: https://testnet.etherscan.io/tx/" + contract.transactionHash + " - waiting to be mined...");
       } else {
-        console.log("Contract mined! Address: " + contract.address);
-        var tx = abi.at(contract.address);
+        console.log("Contract A mined! Address: " + contract.address);
+        var tx = abiA.at(contract.address);
+      }
+    }
+});
+contractB = eth.compile.solidity(sourceB).TemperatureMeasurementB
+var abiB = eth.contract(contractB.info.abiDefinition)
+abiB.new(eth.accounts[1], 0, 30, {from: eth.accounts[0], data: contractB.code, gas: 400000}, function(e, contract){
+    if(!e) {
+      if(!contract.address) {
+        console.log("Contract B transaction send: https://testnet.etherscan.io/tx/" + contract.transactionHash + " - waiting to be mined...");
+      } else {
+        console.log("Contract B mined! Address: " + contract.address);
+        var tx = abiB.at(contract.address);
       }
     }
 });
 EOF
 
+# check gas: eth.getTransactionReceipt(txHash).gasUsed
+
+# make sure you are running: geth --testnet --unlock 0,1 --password "" --rpc 
 echo "run: loadScript(\"tmp.js\")"
 geth --testnet attach http://127.0.0.1:8545
 

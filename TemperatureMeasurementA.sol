@@ -45,7 +45,7 @@ contract TemperatureMeasurementA {
         }
         /* read state variable, writing directly to it is expensive */
         var _measurements = measurements;
-        var _failures = failures;
+        uint32 _failures = failures;
         var _firstTimestamp = firstTimestamp;
         var _lastTimestamp = lastTimestamp;
         uint8 _maxTemperature = maxTemperature;
@@ -127,5 +127,10 @@ contract TemperatureMeasurementA {
     /* The temperature range to check */
     function temperatureRange() constant returns (uint8,uint8) {
        return (minTemperature, maxTemperature);
+    }
+
+    /* The timestamp range */
+    function timestampRange() constant returns (uint32,uint32) {
+       return (firstTimestamp, lastTimestamp);
     }
 }
