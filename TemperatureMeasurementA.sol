@@ -66,12 +66,12 @@ contract TemperatureMeasurementA {
         
         /* calculate hash of input, store hash in array -> expensive operation */
         bytes memory b = new bytes(5*_temperatures.length);
-        for (uint16 i = 0; i < b.length; i+=5) {
-            b[i+0]=bytes1(_timestamps[i]);
-            b[i+1]=bytes1(shr(_timestamps[i], 8));
-            b[i+2]=bytes1(shr(_timestamps[i], 16));
-            b[i+3]=bytes1(shr(_timestamps[i], 24));
-            b[i+4]=bytes1(_temperatures[i]);
+        for (uint16 j = 0; j < _temperatures.length; j++) {
+            b[(j*5)+0]=bytes1(_timestamps[j]);
+            b[(j*5)+1]=bytes1(shr(_timestamps[j], 8));
+            b[(j*5)+2]=bytes1(shr(_timestamps[j], 16));
+            b[(j*5)+3]=bytes1(shr(_timestamps[j], 24));
+            b[(j*5)+4]=bytes1(_temperatures[j]);
         }
         hashes.push(sha256(b));
         
