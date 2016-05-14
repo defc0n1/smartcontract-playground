@@ -39,30 +39,36 @@ creates the contract
 });
 ```
 
-contract cost A: 556878 gas
+contract cost A: 773639 gas
 contract cost B: 391544 gas
 
 ## Measurements
 
+Since both A and B contracts are deployed, used 
+
+```javascript
+var tx = abiA.at("0x...") // for contract A
+var tx = abiB.at("0x...") // for contract B
+```
 ###Send temperature with contract A, everything good:
 
 tx.reportTemperature.sendTransaction([1,2], [1000,2000], {from:eth.accounts[1], gas: 300000})
--> cost: 40876 gas
+-> cost: 59073 gas
 tx.reportTemperature.sendTransaction([1,2,3], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
--> cost: 36437 gas
+-> cost: 61203 gas
 tx.reportTemperature.sendTransaction([1,2,3,4], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
--> cost: 37172
--> 1 more: 735 gas
+-> cost: 63333 gas
+-> 1 more: 2130 gas
 
 ###Send temperature with contract A, temperature failures:
 
 tx.reportTemperature.sendTransaction([1,31], [1000,2000], {from:eth.accounts[1], gas: 300000})
--> cost: 76122
+-> cost: 104683
 tx.reportTemperature.sendTransaction([1,31,32], [1000,2000,3000], {from:eth.accounts[1], gas: 300000})
--> cost: 57397
+-> cost: 87361
 tx.reportTemperature.sendTransaction([1,31,32,33], [1000,2000,3000,4000], {from:eth.accounts[1], gas: 300000})
--> cost: 68662
--> 1 more: 11265 gas
+-> cost: 100029
+-> 1 more: 12668 gas
 
 ###Send temperature with contract B, everything good:
 
