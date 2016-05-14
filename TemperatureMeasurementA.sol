@@ -18,6 +18,7 @@ contract TemperatureMeasurementA {
 
     address owner;
     address temperatureWriter;
+    string storageLocation;
 
     uint8 minTemperature;
     uint8 maxTemperature;
@@ -28,10 +29,12 @@ contract TemperatureMeasurementA {
     uint32 failures = 0;
     uint32 firstTimestamp = 0;
     uint32 lastTimestamp = 0;
+    bytes32[] hashes;
 
     /* Constructor, set who is allowed to write and the temperature range */
     function TemperatureMeasurementA(address _temperatureWriter, 
-            uint8 _minTemperature, uint8 _maxTemperature, uint16 _maxFailureReports) {
+            uint8 _minTemperature, uint8 _maxTemperature, 
+            uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
         minTemperature = _minTemperature;
@@ -40,6 +43,7 @@ contract TemperatureMeasurementA {
             throw;
         }
         maxFailureReports = _maxFailureReports;
+        storageLocation = _storageLocation;
     }
 
     /* Any remaining funds should be sent back to the sender 
@@ -59,6 +63,18 @@ contract TemperatureMeasurementA {
         if(_temperatures.length != _timestamps.length) {
             throw;
         }
+        
+        /* calculate hash of input, store hash in array -> expensive operation */
+        bytes memory b = new bytes(5*_temperatures.length);
+        for (uint16 i = 0; i < b.length; i+=5) {
+            b[i+0]=bytes1(_timestamps[i]);
+            b[i+1]=bytes1(shr(_timestamps[i], 8));
+            b[i+2]=bytes1(shr(_timestamps[i], 16));
+            b[i+3]=bytes1(shr(_timestamps[i], 24));
+            b[i+4]=bytes1(_temperatures[i]);
+        }
+        hashes.push(sha256(b));
+        
         /* read state variable, writing directly to it is expensive */
         var _measurements = measurements;
         uint32 _failures = failures;
@@ -141,12 +157,23 @@ contract TemperatureMeasurementA {
     }
     
     /* The temperature range to check */
-    function temperatureRange() constant returns (uint8,uint8) {
-       return (minTemperature, maxTemperature);
+    function temperatureMin() constant returns (uint8) {
+       return minTemperature;
+    }
+    function temperatureMax() constant returns (uint8) {
+       return maxTemperature;
     }
 
     /* The timestamp range */
-    function timestampRange() constant returns (uint32,uint32) {
-       return (firstTimestamp, lastTimestamp);
+    function timestampFirst() constant returns (uint32) {
+       return firstTimestamp;
+    }
+    function timestampLast() constant returns (uint32) {
+       return lastTimestamp;
+    }
+
+    /* shift right, currently not implemented: https://github.com/ethereum/solidity/issues/33 */
+    function shr(uint32 input, byte bits) constant returns (uint32) {
+        return input / (2 ** uint32(bits));
     }
 }
