@@ -8,6 +8,7 @@ dist: trusty
 sudo: required
 
 before_install:
+- pwd
 - cd $GOPATH/src/github.com
 - mkdir ethereum
 - cd ethereum
@@ -20,22 +21,11 @@ before_install:
 - sudo add-apt-repository -y ppa:ethereum/ethereum
 - sudo apt-get -y update
 - sudo apt-get -y install cpp-ethereum
+- go get -t ./...
 - cd
-
-install:
-- pwd
-- ls -la
-- go get -t -v ./smartcontract/...
-- go get -t -v
-- go generate ./smartcontract/...
-- go generate
 
 script:
 - pwd
 - ls -la
-- go get -t -v ./smartcontract/...
-- go get -t -v
-- go generate ./smartcontract/...
 - go generate
-- go test -v ./smartcontract/...
-- go test -v
+- go test -v ./...
