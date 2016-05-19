@@ -14,7 +14,7 @@ echo '";' >> tmp.js
 cat << 'EOF' >> tmp.js
 contractA = eth.compile.solidity(sourceA).TemperatureMeasurementA
 var abiA = eth.contract(contractA.info.abiDefinition)
-abiA.new(eth.accounts[1], 0, 30, 10, {from: eth.accounts[0], data: contractA.code, gas: 600000}, function(e, contract){
+abiA.new(eth.accounts[1], 0, 30, 10, "ipfs://something", {from: eth.accounts[0], data: contractA.code, gas: 800000}, function(e, contract){
     if(!e) {
       if(!contract.address) {
         console.log("Contract A transaction send: https://testnet.etherscan.io/tx/" + contract.transactionHash + " - waiting to be mined...");

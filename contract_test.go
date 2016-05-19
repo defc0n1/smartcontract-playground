@@ -35,7 +35,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Printf("Failed to deploy new temp contract: %v", err)
 	}
-	// Print the current (non existent) and pending name of the contract
 
 	sim.Commit()
 	tempContract = temp
