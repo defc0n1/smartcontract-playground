@@ -1,8 +1,8 @@
 language: go
 
 go:
-  - 1.6
-  - tip
+- 1.6
+- tip
 
 dist: trusty
 sudo: required
@@ -22,6 +22,7 @@ before_install:
 - sudo apt-get -y install cpp-ethereum
 
 script:
-- go get -t 
-- go generate contract_test.go
+- go get -t -v ./...
+- ls -la
+- go generate
 - go test -v
