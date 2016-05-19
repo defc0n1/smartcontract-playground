@@ -9,8 +9,8 @@ before_install:
 - go get github.com/tools/godep
 - godep go install ./cmd/abigen
 - cd $GOPATH/src/github.com/modum-io/smartcontract
-- go get
 
 script:
+- go get
 - go generate
 - go test -v ./...
