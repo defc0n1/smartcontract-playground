@@ -21,8 +21,20 @@ before_install:
 - sudo apt-get -y update
 - sudo apt-get -y install cpp-ethereum
 
-script:
-- go get -t -v ./...
+install:
+- pwd
 - ls -la
+- go get -t -v ./smartcontract/...
+- go get -t -v
+- go generate ./smartcontract/...
 - go generate
+
+script:
+- pwd
+- ls -la
+- go get -t -v ./smartcontract/...
+- go get -t -v
+- go generate ./smartcontract/...
+- go generate
+- go test -v ./smartcontract/...
 - go test -v
