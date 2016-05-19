@@ -9,3 +9,6 @@ before_install:
 - go get github.com/tools/godep
 - godep go install ./cmd/abigen
 
+script:
+- go generate
+- go test -v ./...
