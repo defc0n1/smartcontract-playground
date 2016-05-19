@@ -22,7 +22,7 @@ before_install:
 - sudo apt-get -y update
 - sudo apt-get -y install cpp-ethereum
 - go get -t ./...
-- cd
+- cd $TRAVIS_BUILD_DIR
 
 script:
 - pwd
