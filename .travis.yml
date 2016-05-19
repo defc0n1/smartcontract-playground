@@ -8,7 +8,6 @@ dist: trusty
 sudo: required
 
 before_install:
-- pwd
 - cd $GOPATH/src/github.com
 - mkdir ethereum
 - cd ethereum
@@ -24,10 +23,6 @@ before_install:
 - go get -t ./...
 - cd $TRAVIS_BUILD_DIR
 
-install: 
-- pwd
-- go generate
+install: go generate
 
-script:
-- pwd
-- go test -v ./...
+script: go test -v ./...
