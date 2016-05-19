@@ -1,9 +1,12 @@
-dist: trusty
-sudo: required
 language: go
+
 go:
   - 1.6
   - tip
+
+dist: trusty
+sudo: required
+
 before_install:
 - cd $GOPATH/src/github.com
 - mkdir ethereum
@@ -19,6 +22,6 @@ before_install:
 - sudo apt-get -y install cpp-ethereum
 
 script:
-- go get -t ./...
-- go generate
+- go get -t 
+- go generate contract_test.go
 - go test -v
