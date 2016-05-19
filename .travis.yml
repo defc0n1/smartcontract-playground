@@ -3,6 +3,7 @@ sudo: required
 language: go
 go:
   - 1.6
+  - tip
 before_install:
 - cd $GOPATH/src/github.com
 - mkdir ethereum
