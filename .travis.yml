@@ -24,7 +24,10 @@ before_install:
 - go get -t ./...
 - cd $TRAVIS_BUILD_DIR
 
-script:
+install: 
 - pwd
 - go generate
+
+script:
+- pwd
 - go test -v ./...
