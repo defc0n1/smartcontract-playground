@@ -26,6 +26,5 @@ before_install:
 
 script:
 - pwd
-- ls -la
 - go generate
 - go test -v ./...
