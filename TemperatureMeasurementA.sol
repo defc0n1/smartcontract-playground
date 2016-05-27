@@ -20,8 +20,8 @@ contract TemperatureMeasurementA {
     address temperatureWriter;
     string storageLocation;
 
-    uint8 minTemperature;
-    uint8 maxTemperature;
+    int8 minTemperature;
+    int8 maxTemperature;
     
     uint32[] failedTimestampSeconds;
     uint16 maxFailureReports;
@@ -33,7 +33,7 @@ contract TemperatureMeasurementA {
 
     /* Constructor, set who is allowed to write and the temperature range */
     function TemperatureMeasurementA(address _temperatureWriter, 
-            uint8 _minTemperature, uint8 _maxTemperature, 
+            int8 _minTemperature, int8 _maxTemperature, 
             uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
@@ -54,7 +54,7 @@ contract TemperatureMeasurementA {
         }
     }
   
-    function reportTemperature(uint8[] _temperatures, uint32[] _timestamps) public {
+    function reportTemperature(int8[] _temperatures, uint32[] _timestamps) public {
         /* Only temperature reporter can write temperature */
         if (msg.sender != temperatureWriter) {
             throw;
@@ -80,8 +80,8 @@ contract TemperatureMeasurementA {
         uint32 _failures = failures;
         var _firstTimestamp = firstTimestamp;
         var _lastTimestamp = lastTimestamp;
-        uint8 _maxTemperature = maxTemperature;
-        uint8 _minTemperature = minTemperature;
+        int8 _maxTemperature = maxTemperature;
+        int8 _minTemperature = minTemperature;
         uint16 _maxFailureReports = maxFailureReports;
         var _currentFailureReports = failedTimestampSeconds.length;
             
@@ -157,10 +157,10 @@ contract TemperatureMeasurementA {
     }
     
     /* The temperature range to check */
-    function temperatureMin() constant returns (uint8) {
+    function temperatureMin() constant returns (int8) {
        return minTemperature;
     }
-    function temperatureMax() constant returns (uint8) {
+    function temperatureMax() constant returns (int8) {
        return maxTemperature;
     }
 

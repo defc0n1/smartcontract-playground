@@ -19,8 +19,8 @@ contract TemperatureMeasurementB {
     address owner;
     address temperatureWriter;
 
-    uint8 minTemperature;
-    uint8 maxTemperature;
+    int8 minTemperature;
+    int8 maxTemperature;
     
     uint32 firstFailedTimestampSeconds = 0;
     uint32 measurements = 0;
@@ -28,7 +28,7 @@ contract TemperatureMeasurementB {
 
     /* Constructor, set who is allowed to write and the temperature range */
     function TemperatureMeasurementB(address _temperatureWriter, 
-            uint8 _minTemperature, uint8 _maxTemperature) {
+            int8 _minTemperature, int8 _maxTemperature) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
         minTemperature = _minTemperature;
@@ -43,7 +43,7 @@ contract TemperatureMeasurementB {
         }
     }
   
-    function reportTemperature(uint8[] _temperatures, uint32[] _timestamps) public {
+    function reportTemperature(int8[] _temperatures, uint32[] _timestamps) public {
         /* Only temperature reporter can write temperature */
         if (msg.sender == temperatureWriter) {
             if(_temperatures.length != _timestamps.length) {
@@ -105,7 +105,10 @@ contract TemperatureMeasurementB {
     }
     
     /* The temperature range to check */
-    function temperatureRange() constant returns (uint8,uint8) {
-       return (minTemperature, maxTemperature);
+    function temperatureMin() constant returns (int8) {
+       return minTemperature;
+    }
+    function temperatureMax() constant returns (int8) {
+       return maxTemperature;
     }
 }
