@@ -33,7 +33,7 @@ contract TemperatureMeasurementA {
     bytes32[] hashes;
 
     /* Constructor, set who is allowed to write and the temperature range */
-    function TemperatureMeasurementA(address _temperatureWriter, string _trackAndTrace
+    function TemperatureMeasurementA(address _temperatureWriter, string _trackAndTrace,
             int8 _minTemperature, int8 _maxTemperature, 
             uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;
