@@ -175,7 +175,7 @@ contract TemperatureMeasurementA {
     }
 
     /* shift right, currently not implemented: https://github.com/ethereum/solidity/issues/33 */
-    function shr(uint32 input, byte bits) constant returns (uint32) {
+    function shr(uint32 input, uint8 bits) constant returns (uint32) {
         return input / (2 ** uint32(bits));
     }
 }
