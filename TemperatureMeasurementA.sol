@@ -19,6 +19,7 @@ contract TemperatureMeasurementA {
     address owner;
     address temperatureWriter;
     string storageLocation;
+    string trackAndTrace;
 
     int8 minTemperature;
     int8 maxTemperature;
@@ -32,11 +33,12 @@ contract TemperatureMeasurementA {
     bytes32[] hashes;
 
     /* Constructor, set who is allowed to write and the temperature range */
-    function TemperatureMeasurementA(address _temperatureWriter, 
+    function TemperatureMeasurementA(address _temperatureWriter, string _trackAndTrace
             int8 _minTemperature, int8 _maxTemperature, 
             uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
+        trackAndTrace = _trackAndTrace;
         minTemperature = _minTemperature;
         maxTemperature = _maxTemperature;
         if(_maxFailureReports < 1) {
