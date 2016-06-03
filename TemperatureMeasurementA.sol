@@ -21,10 +21,12 @@ contract TemperatureMeasurementA {
     string storageLocation;
     string trackAndTrace;
 
+	//workaround with negative values, add internally offset of 64
     int8 minTemperature;
     int8 maxTemperature;
     
     uint32[] failedTimestampSeconds;
+	int8[] failedTemperatures;
     uint16 maxFailureReports;
     uint32 measurements = 0;
     uint32 failures = 0;
@@ -39,8 +41,8 @@ contract TemperatureMeasurementA {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
         trackAndTrace = _trackAndTrace;
-        minTemperature = _minTemperature;
-        maxTemperature = _maxTemperature;
+		minTemperature = _minTemperature;
+		maxTemperature = _maxTemperature;
         if(_maxFailureReports < 1) {
             throw;
         }
@@ -99,13 +101,14 @@ contract TemperatureMeasurementA {
         for (uint32 i = 0; i < _temperatures.length; i++) {
 		       _measurements++;
 		        
-		       if(_temperatures[i] > _maxTemperature 
+		       if(_temperatures[i] > _maxTemperature
                     || _temperatures[i] < _minTemperature) {
                 _failures++;
                 if(_currentFailureReports < _maxFailureReports) {
                     _currentFailureReports++;
                     /* write state back, this is the expensive work */
                     failedTimestampSeconds.push(_timestamps[i]);
+					failedTemperatures.push(_temperatures[i]);
                 }
                 
             }
@@ -156,6 +159,16 @@ contract TemperatureMeasurementA {
     /* The length of the failed timestamp array */
     function failedTimestampLength() constant returns (uint16) {
        return uint16(failedTimestampSeconds.length);
+    }
+	
+	/* The temperature that was off at given indenx */
+    function failedTemperaturesAt(uint16 index) constant returns (int8) {
+       return failedTemperatures[index];
+    }
+    
+    /* The length of the failed temperature array */
+    function failedTemperaturesLength() constant returns (uint16) {
+       return uint16(failedTemperatures.length);
     }
     
     /* The temperature range to check */
