@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 	sim := backends.NewSimulatedBackend(core.GenesisAccount{Address: auth.From, Balance: big.NewInt(10000000000)})
 	// Deploy a temp contract on the simulated blockchain
 	temperatureWriterAddress = authTempWriter.From
-	_, _, temp, err := DeployTemperatureMeasurementA(auth, sim, temperatureWriterAddress, "99.00.123456.12345678", int8(-2), int8(30), uint16(10), "SBT")
+	_, _, temp, err := DeployTemperatureMeasurementA(auth, sim, temperatureWriterAddress, int8(-2), int8(30), uint16(10), "SBT")
 	if err != nil {
 		log.Printf("Failed to deploy new temp contract: %v", err)
 	}

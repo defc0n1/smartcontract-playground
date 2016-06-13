@@ -19,7 +19,6 @@ contract TemperatureMeasurementA {
     address owner;
     address temperatureWriter;
     string storageLocation;
-    string trackAndTrace;
 
 	//workaround with negative values, add internally offset of 64
     int8 minTemperature;
@@ -35,12 +34,11 @@ contract TemperatureMeasurementA {
     bytes32[] hashes;
 
     /* Constructor, set who is allowed to write and the temperature range */
-    function TemperatureMeasurementA(address _temperatureWriter, string _trackAndTrace,
+    function TemperatureMeasurementA(address _temperatureWriter,
             int8 _minTemperature, int8 _maxTemperature, 
             uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
-        trackAndTrace = _trackAndTrace;
 		minTemperature = _minTemperature;
 		maxTemperature = _maxTemperature;
         if(_maxFailureReports < 1) {

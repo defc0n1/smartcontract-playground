@@ -18,7 +18,6 @@ contract TemperatureMeasurementB {
 
     address owner;
     address temperatureWriter;
-    string trackAndTrace;
 
     int8 minTemperature;
     int8 maxTemperature;
@@ -28,11 +27,10 @@ contract TemperatureMeasurementB {
     uint32 failures = 0;
 
     /* Constructor, set who is allowed to write and the temperature range */
-    function TemperatureMeasurementB(address _temperatureWriter, string _trackAndTrace,
+    function TemperatureMeasurementB(address _temperatureWriter,
             int8 _minTemperature, int8 _maxTemperature) {
         owner = msg.sender;
 	    temperatureWriter = _temperatureWriter;
-        trackAndTrace = _trackAndTrace;
         minTemperature = _minTemperature;
         maxTemperature = _maxTemperature;
     }
