@@ -19,6 +19,10 @@ before_install:
 - sudo add-apt-repository -y ppa:ethereum/ethereum-qt
 - sudo add-apt-repository -y ppa:ethereum/ethereum
 - sudo apt-get -y update
+# this will install solc, however, there is currentl a problem reading from stdin:
+# https://github.com/ethereum/solidity/issues/651
+# until this issue is fixed, and available in Ubuntu the testcases will not run on travis
+# https://github.com/ethereum/solidity/pull/652
 - sudo apt-get -y install cpp-ethereum
 - go get -t ./...
 - cd $TRAVIS_BUILD_DIR
