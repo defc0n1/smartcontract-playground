@@ -20,7 +20,6 @@ contract TemperatureMeasurementA {
     address temperatureWriter;
     string storageLocation;
 
-	//workaround with negative values, add internally offset of 64
     int8 minTemperature;
     int8 maxTemperature;
     

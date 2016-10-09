@@ -33,7 +33,7 @@ func TestReportSuccess30(t *testing.T) {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
 	_, err = bs.contractB.ReportTemperature(authTempWriter, temp, timestamp)
-	if err == nil {
+	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
 	bs.sim.Commit()
