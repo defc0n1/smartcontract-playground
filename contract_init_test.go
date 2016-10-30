@@ -153,33 +153,20 @@ func TestFreshContractNrTimestapms(t *testing.T) {
 
 func TestFreshContractMinTemp(t *testing.T) {
 	bs := NewBlockSimulator()
-	retVal, _ := bs.contractA.TemperatureMin(nil)
-	i := strconv.Itoa(int(retVal))
-	if retVal != -2 {
-		t.Log("contract min temp must be -2, but is " + i)
+	retVal1, retVal2, _ := bs.contractA.TemperatureRange(nil)
+	i1 := strconv.Itoa(int(retVal1))
+	i2 := strconv.Itoa(int(retVal2))
+	if retVal1 != -2 {
+		t.Log("contract min temp must be -2, but is " + i1)
 		t.Fail()
 	}
-	retVal, _ = bs.contractB.TemperatureMin(nil)
-	if retVal != -2 {
-		t.Log("contract min temp must be -2, but is " + i)
+	if retVal2 != 30 {
+		t.Log("contract min temp must be -2, but is " + i2)
 		t.Fail()
 	}
 }
 
-func TestFreshContractMaxTemp(t *testing.T) {
-	bs := NewBlockSimulator()
-	retVal, _ := bs.contractA.TemperatureMax(nil)
-	i := strconv.Itoa(int(retVal))
-	if retVal != 30 {
-		t.Log("contract min temp must be 30, but is " + i)
-		t.Fail()
-	}
-	retVal, _ = bs.contractA.TemperatureMax(nil)
-	if retVal != 30 {
-		t.Log("contract min temp must be 30, but is " + i)
-		t.Fail()
-	}
-}
+
 
 func TestFreshContractTimestapmFirst(t *testing.T) {
 	bs := NewBlockSimulator()

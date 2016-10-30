@@ -30,14 +30,18 @@ func TestReportFailed1(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		timestamp[i] = uint32(i + 1);
 	}
-	_, err := bs.contractA.ReportTemperature(authTempWriter, temp, timestamp);
+
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err :=  bs.contractA.GenerateReport(nil, temp, timestamp)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
 	_, err = bs.contractB.ReportTemperature(authTempWriter, temp, timestamp);
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
+
 	bs.sim.Commit()
 
 	retValBool1, _ := bs.contractA.Success(nil)
@@ -64,7 +68,7 @@ func TestReportFailed1(t *testing.T) {
 
 	retValNr1, _ := bs.contractA.FailedTemperaturesLength(nil)
 	if retValNr1 != 1 {
-		t.Log("report temp has 1 failed temp")
+		t.Log("report temp has 1 failed temp %v", retValNr1)
 		t.Fail()
 	}
 	retValNr2, _ := bs.contractA.FailedTimestampSecondsAt(nil, 0)
@@ -116,10 +120,12 @@ func TestReportFailed2(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		timestamp[i] = uint32(i + 1);
 	}
-	_, err := bs.contractA.ReportTemperature(authTempWriter, temp, timestamp);
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err :=  bs.contractA.GenerateReport(nil, temp, timestamp)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
 	_, err = bs.contractB.ReportTemperature(authTempWriter, temp, timestamp);
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
@@ -204,10 +210,13 @@ func TestReportFailed11(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		timestamp[i] = uint32(i + 1);
 	}
-	_, err := bs.contractA.ReportTemperature(authTempWriter, temp, timestamp);
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err :=  bs.contractA.GenerateReport(nil, temp, timestamp)
+	//log.Printf("XX: %v %v %v %v %v %v\n", failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
 	_, err = bs.contractB.ReportTemperature(authTempWriter, temp, timestamp);
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)

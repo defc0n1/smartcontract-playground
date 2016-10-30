@@ -80,7 +80,7 @@ contract TemperatureMeasurementA {
         uint32 _current = uint32(failedTimestampSeconds.length);
         uint32 _len = uint32(_failedTimestampSeconds.length);
         uint16 _max = maxFailureReports;
-        for (uint32 i = _current; (i - _current) < _len && i < _max && (i - _current) < _failures; i++) {
+        for (uint32 i = _current; (i - _current) < _len && i < _max; i++) {
             failedTimestampSeconds.push(_failedTimestampSeconds[(i-_current)]);
 	        failedTemperatures.push(_failedTemperatures[(i-_current)]);
         }
@@ -94,6 +94,36 @@ contract TemperatureMeasurementA {
         hashes.push(_hash);
     }
 
+    function generateReport2(int8[] _temperatures, uint32[] _timestamps) constant
+            returns (uint32[], int8[], uint32, uint32, bytes32) {
+
+        uint32 len = uint32 (_temperatures.length);
+
+        if(len != _timestamps.length) {
+            throw;
+        }
+
+        uint8[] memory b = new uint8[](5*len);
+        uint32 _failures = 0;
+        uint32[] memory _failedTimestampSeconds;
+	    int8[] memory _failedTemperatures;
+
+        for (uint16 i = 0; i < len; i++) {
+            b[(i*5)+0]=uint8(_timestamps[i]);
+            b[(i*5)+1]=uint8(shr(_timestamps[i], 8));
+            b[(i*5)+2]=uint8(shr(_timestamps[i], 16));
+            b[(i*5)+3]=uint8(shr(_timestamps[i], 24));
+            b[(i*5)+4]=uint8(_temperatures[i]);
+
+            if(_temperatures[i] > maxTemperature || _temperatures[i] < minTemperature) {
+                _failures++;
+
+            }
+        }
+
+        return (_failedTimestampSeconds, _failedTemperatures, _failures, len, sha256(b));
+    }
+
     function generateReport(int8[] _temperatures, uint32[] _timestamps) constant
             returns (uint32[], int8[], uint32, uint32, bytes32) {
 
@@ -104,22 +134,22 @@ contract TemperatureMeasurementA {
         }
 
         uint32 _failures = 0;
-        uint32[] memory _failedTimestampSeconds = new uint32[](maxFailureReports);
-	    int8[] memory _failedTemperatures = new int8[](maxFailureReports);
+        uint32[] memory _failedTimestampSeconds;
+	    int8[] memory _failedTemperatures;
 
-        bytes memory b = new bytes(5*len);
+        uint8[] memory b = new uint8[](5*len);
         for (uint16 i = 0; i < len; i++) {
-            b[(i*5)+0]=bytes1(_timestamps[i]);
-            b[(i*5)+1]=bytes1(shr(_timestamps[i], 8));
-            b[(i*5)+2]=bytes1(shr(_timestamps[i], 16));
-            b[(i*5)+3]=bytes1(shr(_timestamps[i], 24));
-            b[(i*5)+4]=bytes1(_temperatures[i]);
+            b[(i*5)+0]=uint8(_timestamps[i]);
+            b[(i*5)+1]=uint8(shr(_timestamps[i], 8));
+            b[(i*5)+2]=uint8(shr(_timestamps[i], 16));
+            b[(i*5)+3]=uint8(shr(_timestamps[i], 24));
+            b[(i*5)+4]=uint8(_temperatures[i]);
 
             if(_temperatures[i] > maxTemperature || _temperatures[i] < minTemperature) {
                 _failures++;
-                if(_failures <= maxFailureReports) {
-                    _failedTimestampSeconds[_failures - 1] = (_timestamps[i]);
-					_failedTemperatures[_failures - 1] = (_temperatures[i]);
+                if(_failures < maxFailureReports) {
+                    _failedTimestampSeconds[_failedTimestampSeconds.length] = (_timestamps[i]);
+					_failedTemperatures[_failedTimestampSeconds.length] = (_temperatures[i]);
                 }
             }
         }

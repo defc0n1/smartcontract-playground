@@ -18,6 +18,7 @@ package main
 
 import (
 	"testing"
+	//"log"
 	"log"
 )
 
@@ -28,10 +29,19 @@ func TestReportSuccess30(t *testing.T) {
 	temp[0] = -2;
 	temp[1] = 30;
 	timestamp := make([]uint32, 30, 30)
-	_, err := bs.contractA.ReportTemperature(authTempWriter, temp, timestamp)
+
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err := bs.contractA.GenerateReport(nil, temp, timestamp)
+	//log.Printf("XX: %v %v %v %v %v %v\n", failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
+
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
+	if err != nil {
+		log.Printf("Failed to report temperatures: %v", err)
+	}
+
 	_, err = bs.contractB.ReportTemperature(authTempWriter, temp, timestamp)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
@@ -102,7 +112,12 @@ func TestReportSuccess60(t *testing.T) {
 	temp[0] = 30;
 	temp[1] = -2;
 	timestamp := make([]uint32, 30, 30)
-	_, err := bs.contractA.ReportTemperature(authTempWriter, temp, timestamp);
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err :=  bs.contractA.GenerateReport(nil, temp, timestamp)
+	if err != nil {
+		log.Printf("Failed to report temperatures: %v", err)
+	}
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
@@ -112,7 +127,12 @@ func TestReportSuccess60(t *testing.T) {
 	}
 	bs.sim.Commit()
 
-	_, err = bs.contractA.ReportTemperature(authTempWriter, temp, timestamp);
+	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err =  bs.contractA.GenerateReport(nil, temp, timestamp)
+	if err != nil {
+		log.Printf("Failed to report temperatures: %v", err)
+	}
+	_, err = bs.contractA.ReportResult(authTempWriter, failedTimestampSeconds, failedTemperatures,
+		failures, measurements, timestamp[0], timestamp[len(timestamp) - 1], hash)
 	if err != nil {
 		log.Printf("Failed to report temperatures: %v", err)
 	}
