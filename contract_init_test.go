@@ -15,7 +15,7 @@
  */
 
 //install abigen as described here: https://github.com/ethereum/go-ethereum/wiki/Native-DApps:-Go-bindings-to-Ethereum-contracts
-//go:generate abigen --sol TemperatureMeasurementA.sol --pkg main --out TemperatureMeasurementA.go
+//go:generate abigen --sol TemperatureMeasurementA2.sol --pkg main --out TemperatureMeasurementA2.go
 //go:generate abigen --sol TemperatureMeasurementB.sol --pkg main --out TemperatureMeasurementB.go
 
 package main
@@ -40,7 +40,7 @@ var authTempWriter *bind.TransactOpts
 var authCreator *bind.TransactOpts
 
 type BlockSimulator struct {
-	contractA *TemperatureMeasurementA
+	contractA *TemperatureMeasurementA2
 	contractB *TemperatureMeasurementB
 	sim       *backends.SimulatedBackend
 }
@@ -54,7 +54,7 @@ func NewBlockSimulator() *BlockSimulator {
 	authCreator = bind.NewKeyedTransactor(keyCreator)
 	bs.sim = backends.NewSimulatedBackend(core.GenesisAccount{Address: authCreator.From, Balance: big.NewInt(10000000000)})
 	// Deploy a temp contract on the simulated blockchain
-	_, _, tempA, err1 := DeployTemperatureMeasurementA(authCreator, bs.sim, authTempWriter.From, int8(-2), int8(30), uint16(10), "SBT")
+	_, _, tempA, err1 := DeployTemperatureMeasurementA2(authCreator, bs.sim, authTempWriter.From, int8(-2), int8(30), uint16(10), "SBT")
 	if err1 != nil {
 		log.Printf("Failed to deploy new temp contract: %v", err1)
 	}

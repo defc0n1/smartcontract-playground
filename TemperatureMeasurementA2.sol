@@ -3,10 +3,8 @@
 /*
  * Copyright 2016 Modum.io and the CSG Group at University of Zurich
  *
- * Licensed under the Apache License, Version 2.0 (the 'License'); you
-may not
- * use this file except in compliance with the License. You may obtain a
-copy of
+ * Licensed under the Apache License, Version 2.0 (the 'License'); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
  * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -14,13 +12,12 @@ copy of
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an 'AS IS' BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and
-limitations under
+ * License for the specific language governing permissions and limitations under
  * the License.
  */
 pragma solidity ^0.4.3;
 
-contract TemperatureMeasurementA {
+contract TemperatureMeasurementA2 {
 
     address owner;
     address temperatureWriter;
@@ -41,7 +38,7 @@ contract TemperatureMeasurementA {
     bytes32[] hashes;
 
     /* Constructor, set who is allowed to write and the temperature range */
-    function TemperatureMeasurementA(address _temperatureWriter,
+    function TemperatureMeasurementA2(address _temperatureWriter,
             int8 _minTemperature, int8 _maxTemperature,
             uint16 _maxFailureReports, string _storageLocation) {
         owner = msg.sender;

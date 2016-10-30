@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo -n 'sourceA = "' > tmp.js
-#tr '\n' ' ' < TemperatureMeasurementA.sol >> tmp.js
+#tr '\n' ' ' < TemperatureMeasurementA2.sol >> tmp.js
 tr --delete '\n' < TemperatureMeasurementA.sol >> tmp.js
 echo '";' >> tmp.js
 
