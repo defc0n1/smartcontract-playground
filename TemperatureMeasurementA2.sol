@@ -15,7 +15,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-pragma solidity ^0.4.3;
+pragma solidity ^0.4.4;
 
 contract TemperatureMeasurementA2 {
 
