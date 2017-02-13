@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright 2016 Modum.io and the CSG Group at University of Zurich
  *

@@ -196,6 +196,4 @@ func TestReportSuccess60(t *testing.T) {
 		t.Log("reported temps cannot have fail temps")
 		t.Fail()
 	}
-
 }
-
