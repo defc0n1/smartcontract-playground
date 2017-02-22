@@ -14,7 +14,7 @@
  * the License.
  */
 
-package main
+package smartcontract
 
 import (
 	"testing"

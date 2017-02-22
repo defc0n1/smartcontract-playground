@@ -18,7 +18,7 @@
 //go:generate abigen --sol TemperatureMeasurementA2.sol --pkg main --out TemperatureMeasurementA2.go
 //go:generate abigen --sol TemperatureMeasurementB.sol --pkg main --out TemperatureMeasurementB.go
 
-package main
+package smartcontract
 
 import (
 	"log"
