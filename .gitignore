@@ -1,6 +1,6 @@
 tmp.js
 TemperatureMeasurementA.go
-TemperatureMeasurementB.go
+#TemperatureMeasurementB.go
 *.iml
 .idea
 smartcontract
