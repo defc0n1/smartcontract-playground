@@ -110,7 +110,7 @@ contract TemperatureMeasurementA2 {
             b[(i*5)+3]=bytes1(shr(_timestamps[i], 24));
             b[(i*5)+4]=bytes1(_temperatures[i]);
 
-            if(_temperatures[i] > maxTemperature || _temperatures[i] < minTemperature) {
+            if(_temperatures[i] >= maxTemperature || _temperatures[i] < minTemperature) {
                 _failures++;
                 if(_failures <= maxFailureReports) {
                     _failedTimestampSeconds[_failures - 1] = (_timestamps[i]);

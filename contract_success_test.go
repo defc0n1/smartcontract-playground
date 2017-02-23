@@ -27,7 +27,7 @@ func TestReportSuccess30(t *testing.T) {
 	bs.TransferETH()
 	temp := make([]int8, 30, 30)
 	temp[0] = -2;
-	temp[1] = 30;
+	temp[1] = 29;
 	timestamp := make([]uint32, 30, 30)
 
 	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err := bs.contractA.GenerateReport(nil, temp, timestamp)
@@ -109,7 +109,7 @@ func TestReportSuccess60(t *testing.T) {
 	bs := NewBlockSimulator()
 	bs.TransferETH()
 	temp := make([]int8, 30, 30)
-	temp[0] = 30;
+	temp[0] = 29;
 	temp[1] = -2;
 	timestamp := make([]uint32, 30, 30)
 	failedTimestampSeconds, failedTemperatures, failures, measurements, hash, err :=  bs.contractA.GenerateReport(nil, temp, timestamp)
