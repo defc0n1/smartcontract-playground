@@ -22,32 +22,32 @@ contract TemperatureMeasurementA2 {
     string storageLocation;
 
     /* set at contract creation */
-    int8 minTemperature;
-    int8 maxTemperature;
-    uint16 maxFailureReports;
+    bytes1 minTemperature;
+    bytes1 maxTemperature;
+    address signerAddress;
 
     /* state */
-    uint32[] failedTimestampSeconds;
-	int8[] failedTemperatures;
     uint32 measurements = 0;
-    uint32 failures = 0;
-    uint32 firstTimestamp = 0;
-    uint32 lastTimestamp = 0;
-    bytes32[] hashes;
+    bool isFailed = false;
+    bytes8 startTimestamp;
+    bytes1 measurementInterval;
+    bytes32 hash;
+    // the signature is composed of values v, r, s
+    uint8 v;
+    bytes32 r;
+    bytes32 s;
 
     /* Constructor, set who is allowed to write and the temperature range */
     function TemperatureMeasurementA2(address _temperatureWriter,
-            int8 _minTemperature, int8 _maxTemperature,
-            uint16 _maxFailureReports, string _storageLocation) {
+            bytes1 _minTemperature, bytes1 _maxTemperature,
+            string _storageLocation, address _signerAddress) {
+
         owner = msg.sender;
-	    temperatureWriter = _temperatureWriter;
-		minTemperature = _minTemperature;
-		maxTemperature = _maxTemperature;
-        if(_maxFailureReports < 1) {
-            throw;
-        }
-        maxFailureReports = _maxFailureReports;
+        temperatureWriter = _temperatureWriter;
+        minTemperature = _minTemperature;
+        maxTemperature = _maxTemperature;
         storageLocation = _storageLocation;
+        signerAddress = _signerAddress;
     }
 
     /* Any remaining funds should be sent back to the sender
@@ -58,110 +58,86 @@ contract TemperatureMeasurementA2 {
         }
     }
 
-    function reportResult(uint32[] _failedTimestampSeconds, int8[] _failedTemperatures,
-            uint32 _failures, uint32 _measurements, uint32 _firstTimestamp,
-            uint32 _lastTimestamp, bytes32 _hash) public {
+    // the signature is composed of values v, r, s
+    function reportResult(uint32 _measurements, bytes8 _startTimestamp,
+            bytes1 _measurementInterval, bytes32 _hash, bool _isFailed,
+            uint8 _v, bytes32 _r, bytes32 _s) public {
 
         /* Only temperature reporter can write temperature */
+
+        // only one temperature report allowed per shipment
+        if (measurements != 0) {
+            throw;
+        }
 
         if (msg.sender != temperatureWriter) {
             throw;
         }
 
-        if(_failedTimestampSeconds.length != _failedTemperatures.length) {
-            throw;
-        }
-
-        uint32 _current = uint32(failedTimestampSeconds.length);
-        uint32 _len = uint32(_failedTimestampSeconds.length);
-        uint16 _max = maxFailureReports;
-        for (uint32 i = _current; (i - _current) < _len && i < _max && (i - _current) < _failures; i++) {
-            failedTimestampSeconds.push(_failedTimestampSeconds[(i-_current)]);
-	        failedTemperatures.push(_failedTemperatures[(i-_current)]);
-        }
-
-        measurements += _measurements;
-        failures += _failures;
-        if (firstTimestamp == 0) {
-            firstTimestamp = _firstTimestamp;
-        }
-        lastTimestamp = _lastTimestamp;
-        hashes.push(_hash);
+        measurements = _measurements;
+        startTimestamp = _startTimestamp;
+        measurementInterval = _measurementInterval;
+        hash = _hash;
+        isFailed = _isFailed;
+        v = _v;
+        r = _r;
+        s = _s;
     }
 
-    function generateReport(int8[] _temperatures, uint32[] _timestamps) constant
-            returns (uint32[], int8[], uint32, uint32, bytes32) {
+    function generateReport(bytes1[] _temperatures) constant
+            returns (bytes32 , bool) {
 
         var len = uint32 (_temperatures.length);
 
-        if(len != _timestamps.length) {
-            throw;
-        }
+        bool _isFailed = false;
 
-        uint32 _failures = 0;
-        uint32[] memory _failedTimestampSeconds = new uint32[](maxFailureReports);
-	    int8[] memory _failedTemperatures = new int8[](maxFailureReports);
-
-        bytes memory b = new bytes(5*len);
+        // use hash of byte measurements concatenated with start timestamp and measurement interval for signature checking
+        bytes memory b = new bytes(len + 9);
         for (uint16 i = 0; i < len; i++) {
-            b[(i*5)+0]=bytes1(_timestamps[i]);
-            b[(i*5)+1]=bytes1(shr(_timestamps[i], 8));
-            b[(i*5)+2]=bytes1(shr(_timestamps[i], 16));
-            b[(i*5)+3]=bytes1(shr(_timestamps[i], 24));
-            b[(i*5)+4]=bytes1(_temperatures[i]);
+            b[i] = _temperatures[i];
 
-            if(_temperatures[i] >= maxTemperature || _temperatures[i] < minTemperature) {
-                _failures++;
-                if(_failures <= maxFailureReports) {
-                    _failedTimestampSeconds[_failures - 1] = (_timestamps[i]);
-					_failedTemperatures[_failures - 1] = (_temperatures[i]);
-                }
+            if(_temperatures[i] > maxTemperature || _temperatures[i] < minTemperature) {
+                _isFailed = true;
             }
         }
 
-        return (_failedTimestampSeconds, _failedTemperatures,
-                _failures, len, sha256(b));
+        
+        for (uint8 j = 0; j < 8; j++) {
+            b[len + j] = startTimestamp[j];
+        }
+        b[len + 8] = measurementInterval;
+
+        return (sha256(b), _isFailed);
     }
 
-    function verifyReport(uint16 series, int8[] _temperatures, uint32[] _timestamps)
+    function verifyReport(bytes1[] _temperatures)
             constant returns (bool) {
-        var (_failedTimestampSeconds, _failedTemperatures, _failures, _measurements, _hash)
-                = generateReport(_temperatures, _timestamps);
-        if(series == hashes.length - 1) {
-            /* full check */
-            if(_failedTimestampSeconds.length != failedTimestampSeconds.length ||
-                    _failedTemperatures.length != failedTemperatures.length ||
-                    _failedTemperatures.length != _failedTimestampSeconds.length) {
-                return false;
-            }
-            for (uint16 i = 0; i < failedTimestampSeconds.length; i++) {
-                if(_failedTimestampSeconds[i] != failedTimestampSeconds[i]) {
-                    return false;
-                }
-                if(_failedTemperatures[i] != failedTemperatures[i]) {
-                    return false;
-                }
-            }
 
-            return hashes[series] == _hash &&
-                    _failures == failures &&
-                    _measurements == measurements;
-        } else {
-            /* intermediate, check only hashes */
-            return hashes[series] == _hash;
+        if(_temperatures.length != measurements) {
+            return false;
         }
+
+        var (_hash, _isFailed) = generateReport(_temperatures);
+
+        if (_isFailed != isFailed) return false;
+        if (_hash != hash) return false;
+
+        address _keyToCompare = ecrecover(_hash, v, r, s);
+        if (_keyToCompare != signerAddress) return false;
+
+        return true;
     }
 
     /* Success is when no failed timestamp was reported and at least
        one measurement was carried out */
     function success() constant returns (bool) {
-       return failedTimestampSeconds.length == 0 && measurements > 0;
+       return !isFailed && measurements > 0;
     }
 
     /* Failed is when one failed timestamp was reported and at least
        one measurement was carried out */
     function failed() constant returns (bool) {
-       return failedTimestampSeconds.length > 0 && measurements > 0;
+       return isFailed && measurements > 0;
     }
 
     /* The number of carried out measurements */
@@ -169,55 +145,25 @@ contract TemperatureMeasurementA2 {
        return measurements;
     }
 
-    /* The number of reported failures */
-    function nrFailures() constant returns (uint32) {
-       return failures;
-    }
-
-    /* The timestamp of the frist temperature that was out of range */
-    function failedTimestampSecondsAt(uint16 index) constant returns (uint32) {
-       return failedTimestampSeconds[index];
-    }
-
-    /* The length of the failed timestamp array */
-    function failedTimestampLength() constant returns (uint16) {
-       return uint16(failedTimestampSeconds.length);
-    }
-
-	/* The temperature that was off at given indenx */
-    function failedTemperaturesAt(uint16 index) constant returns (int8) {
-       return failedTemperatures[index];
-    }
-
-    /* The length of the failed temperature array */
-    function failedTemperaturesLength() constant returns (uint16) {
-       return uint16(failedTemperatures.length);
-    }
-
     /* The temperature range to check */
-    function temperatureRange() constant returns (int8, int8) {
+    function temperatureRange() constant returns (bytes1, bytes1) {
        return (minTemperature, maxTemperature);
     }
 
     /* The timestamp range */
-    function timestampFirst() constant returns (uint32) {
-       return firstTimestamp;
+    function getStartTimestamp() constant returns (bytes8) {
+       return startTimestamp;
     }
-    function timestampLast() constant returns (uint32) {
-       return lastTimestamp;
-    }
-
-    /* Hash */
-    function hashLength() constant returns (uint16) {
-       return uint16(hashes.length);
-    }
-    function hashAt(uint16 index) constant returns (bytes32) {
-       return hashes[index];
+    function getMeasurementInterval() constant returns (bytes1) {
+       return measurementInterval;
     }
 
-    /* shift right, currently not implemented: https://github.com/ethereum/solidity/issues/33 */
-    function shr(uint32 input, uint8 bits) constant returns (uint32) {
-        return input / (2 ** uint32(bits));
+    function getHash() constant returns (bytes32) {
+       return hash;
+    }
+
+    function getSignature() constant returns (uint8, bytes32, bytes32) {
+        return (v, r, s);
     }
 }
 
