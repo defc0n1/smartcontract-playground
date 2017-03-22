@@ -187,7 +187,7 @@ Start with the 64 byte public key without the 04 prefix.
 
 Take the SHA3-256 hash of that.
 
-    cat pub.txt | xxd -r -p | xxd
+    cat pub.txt | xxd -r -p | rhash --sha3-256 -
 
 The last 20 bytes make up the Ethereum address.
 
