@@ -18,7 +18,7 @@
 //go:generate abigen --sol TemperatureMeasurementA2.sol --pkg main --out TemperatureMeasurementA2.go
 //go:generate abigen --sol TemperatureMeasurementB.sol --pkg main --out TemperatureMeasurementB.go
 
-package main
+package smartcontract
 
 import (
 	"log"
@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/core/types"
 	"crypto/ecdsa"
+	"golang.org/x/net/context"
 )
 
 var keyTempWriter *ecdsa.PrivateKey
@@ -72,12 +73,13 @@ func NewBlockSimulator() *BlockSimulator {
 }
 
 func (bs BlockSimulator) TransferETH() {
-	nonce, _ := bs.sim.PendingAccountNonce(authCreator.From)
+	ctx := context.Background()
+	nonce, _ := bs.sim.PendingNonceAt(ctx, authCreator.From)
 	tx := types.NewTransaction(nonce, authTempWriter.From,
 		big.NewInt(100000000), big.NewInt(120000), big.NewInt(1), []byte{})
-	signedTx, _ := authCreator.Signer(authCreator.From, tx)
+	signedTx, _ := authCreator.Signer(types.HomesteadSigner{},authCreator.From, tx)
 
-	bs.sim.SendTransaction(signedTx)
+	bs.sim.SendTransaction(ctx, signedTx)
 	bs.sim.Commit()
 }
 

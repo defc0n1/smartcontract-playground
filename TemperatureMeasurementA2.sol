@@ -1,5 +1,3 @@
-
-
 /*
  * Copyright 2016 Modum.io and the CSG Group at University of Zurich
  *
@@ -15,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-pragma solidity ^0.4.3;
+pragma solidity ^0.4.4;
 
 contract TemperatureMeasurementA2 {
 
@@ -112,7 +110,7 @@ contract TemperatureMeasurementA2 {
             b[(i*5)+3]=bytes1(shr(_timestamps[i], 24));
             b[(i*5)+4]=bytes1(_temperatures[i]);
 
-            if(_temperatures[i] > maxTemperature || _temperatures[i] < minTemperature) {
+            if(_temperatures[i] >= maxTemperature || _temperatures[i] < minTemperature) {
                 _failures++;
                 if(_failures <= maxFailureReports) {
                     _failedTimestampSeconds[_failures - 1] = (_timestamps[i]);
