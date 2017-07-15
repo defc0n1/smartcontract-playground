@@ -28,7 +28,6 @@ contract ERC20Interface {
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
 }
 
-
 contract VoteCollector{
     function countVote(bytes32 option, uint votes);
 }
@@ -103,7 +102,9 @@ contract ModumToken is ERC20Interface {
     
     function airDrop() payable{
         require(!mintingAllowed);
+
         uint totSup = avaiableSupply+lockedSupply;
+        require(msg.value >= totSup);
         require(avaiableSupply != 0);
         uint lockCorrected = (msg.value*totSup)/avaiableSupply;
         lockCorrectedAirdroppedWei += lockCorrected;
@@ -180,12 +181,12 @@ contract ModumToken is ERC20Interface {
         return balances[_owner].shareTokensAmount;
     }
     
-    function votingPower(address _owner) returns (uint256 balance){
-        return touchAndGet(_owner).avaiableTokensForVote;
+    function votingPower(address _owner) constant returns (uint256 balance){
+        return balances[_owner].avaiableTokensForVote;
     }
     
-    function weiAvaiable(address _owner) returns (uint256 balance){
-        return touchAndGet(_owner).weiAirdropAvaiable;
+    function weiAvaiable(address _owner) constant returns (uint256 balance){
+        return balances[_owner].weiAirdropAvaiable;
     }
 
     // Send _value amount of tokens to address _to
@@ -224,5 +225,6 @@ contract ModumToken is ERC20Interface {
     
     function allowance(address _owner, address _spender) constant returns (uint remaining) {
         return allowed[_owner][_spender];
-    }   
+    }
+    
 }
