@@ -140,7 +140,7 @@ contract ModumToken is ERC20Interface {
         require(mintDone);      //only after minting
         uint value = msg.value + rounding; //add old runding
         rounding = value % unlockedTokens; //ensure no rounding error
-        bonusLockCorrectedWei += ((value-rounding) * totalSupply()) / unlockedTokens; //account for locked tokens and add the drop
+        bonusLockCorrectedWei += (value-rounding) / unlockedTokens; //account for locked tokens and add the drop
     }
     
     function getUnlockedTokens() constant returns (uint) {
@@ -182,7 +182,7 @@ contract ModumToken is ERC20Interface {
 		if(mode == UpdateMode.Wei || mode == UpdateMode.Both){
             uint bonus = (bonusLockCorrectedWei -  account.lastAirdropWei);
             if(bonus != 0){
-    			account.bonusWei += (bonus * account.valueMod) / totalSupply();
+    			account.bonusWei += (bonus * account.valueMod);
     			account.lastAirdropWei = bonusLockCorrectedWei;
     		}
 		}
