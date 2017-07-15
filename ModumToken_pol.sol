@@ -149,10 +149,10 @@ contract ModumToken is ERC20Interface {
     
     function claimBonus() {
         Account storage account = getAccount(msg.sender, UpdateMode.Wei);
-        uint sendValue = account.bonusWei;
+        uint sendValue = account.bonusWei; //fetch the values
         if(sendValue != 0){
-            account.bonusWei = 0;
-            msg.sender.transfer(sendValue);
+            account.bonusWei = 0;           //set to zero (before against reentry) 
+            msg.sender.transfer(sendValue); //send the bonus to the correct account
         }
     }
     
@@ -169,7 +169,7 @@ contract ModumToken is ERC20Interface {
     }
     
 	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){
-        if(mode != UpdateMode.None) require(mintDone);
+        if(mode != UpdateMode.None) require(mintDone); 
         
         Account storage account = accounts[_addr];
 		if(mode == UpdateMode.Vote || mode == UpdateMode.Both){
