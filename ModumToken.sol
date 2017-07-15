@@ -48,12 +48,14 @@ contract ModumToken is ERC20Interface {
     uint lockedTokens = 10 * 1000 * 1000;
     uint maxTokens = 30 * 1000 * 1000;
     //https://www.epochconverter.com -> 1.9.2017 + 1 week
-    uint mintPhaseEnd = 1504224000 + 1 weeks; //1 week after ICO, to be defined
-    uint votingDuration = 2 weeks;
+    bool mintDone = false;
+    uint votingDuration = 2 minutes;
     uint8 quorumWeight = 200; //100 -> is 1, 150 is 1.5, with 200 you need 2/3 of the votes
     
     string public constant name = "Modum Token";
     string public constant symbol = "MOD";
+    
+    uint rounding = 0;
     
     struct Proposal {
         string addr;
@@ -73,7 +75,7 @@ contract ModumToken is ERC20Interface {
     }
     
     function proposal(string _addr, bytes32 _hash, uint _value) returns (bool) {
-        require(now >= mintPhaseEnd); //minting phase needs to be over
+        require(mintDone); //minting phase needs to be over
         require(currentProposal.valueMod == 0); // no vote is ongoing
         require(msg.sender == owner); // proposal ony by onwer
         require(lockedTokens >= _value); //proposal cannot be larger than locked tokens
@@ -111,7 +113,7 @@ contract ModumToken is ERC20Interface {
     
     function mint(address _recipient, uint _value) returns (bool) {
         require(msg.sender == owner);
-        if(now < mintPhaseEnd && (totalSupply() + _value) <= maxTokens) {
+        if(!mintDone && (totalSupply() + _value) <= maxTokens) {
             
             weiPower(_recipient);
             
@@ -122,11 +124,22 @@ contract ModumToken is ERC20Interface {
         return false;
     }
     
-    function bonus() payable returns (bool) {
-        require(unlockedTokens > 0);
-        require(msg.value >= totalSupply()); // every one should get at least one wei
-        bonusWei += (msg.value * totalSupply()) / unlockedTokens;
+    function mintFinished() returns (bool) {
+        require(msg.sender == owner);
+        mintDone = true;
         return true;
+    }
+    
+    //default function to pay bonus, anybody that sends eth to this contract will distribute the wei
+    //to their token holders
+    function() payable {
+        uint value = msg.value + rounding;
+        rounding = value % unlockedTokens;
+        bonusWei += ((value-rounding) * totalSupply()) / unlockedTokens;
+    }
+    
+    function getUnlockedTokens() constant returns (uint) {
+        return unlockedTokens;
     }
     
     function claimBonus() returns (bool) {
