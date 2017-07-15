@@ -75,7 +75,6 @@ contract ModumToken is ERC20Interface {
     }
     
     function proposal(string _addr, bytes32 _hash, uint _value, uint16 _quorumWeight) {
-        require(mintDone); //minting phase needs to be over
         require(currentProposal.valueMod == 0); // no vote is ongoing
         require(msg.sender == owner); // proposal ony by onwer
         require(lockedTokens >= _value); //proposal cannot be larger than remaining locked tokens
@@ -86,7 +85,6 @@ contract ModumToken is ERC20Interface {
     }
     
     function vote(bool _vote) returns (uint) {
-        require(mintDone); //minting phase needs to be over
         require(isVoteOngoing()); // vote needs to be ongoing
         Account storage account = getAccount(msg.sender, UpdateMode.Vote);
         uint votes = account.valueModVote;  //avaiable votes
@@ -121,7 +119,7 @@ contract ModumToken is ERC20Interface {
         require(msg.sender == owner); //only owner can claim proposal
         require(!mintDone); //only during minting
         require((totalSupply() + _value) <= maxTokens); //do not exceed max
-        Account storage account = getAccount(_recipient, UpdateMode.None);
+        Account storage account = getAccount(_recipient, UpdateMode.Both);
         account.valueMod += _value; //create the tokens and add to recipient
         unlockedTokens += _value; //create tokens
 
@@ -137,7 +135,6 @@ contract ModumToken is ERC20Interface {
     //to their token holders
     //Dividend payment / Airdrop
     function() payable {
-        require(mintDone);      //only after minting
         uint value = msg.value + rounding; //add old runding
         rounding = value % unlockedTokens; //ensure no rounding error
         totalDropPerUnlockedToken += (value-rounding) / unlockedTokens; //account for locked tokens and add the drop
@@ -168,9 +165,7 @@ contract ModumToken is ERC20Interface {
         return currentProposal.valueMod != 0 && now >= currentProposal.startTime && now < currentProposal.startTime + votingDuration;
     }
     
-	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){
-        if(mode != UpdateMode.None) require(mintDone); 
-        
+	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){        
         Account storage account = accounts[_addr];
 		if(mode == UpdateMode.Vote || mode == UpdateMode.Both){
 		    if(isVoteOngoing() && account.lastProposalStartTime < currentProposal.startTime) { // the user did set his token power yet
