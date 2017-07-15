@@ -73,6 +73,10 @@ contract ModumToken is ERC20Interface {
     function ModumToken() {
         owner = msg.sender;
     }
+	
+	event Minted(address _addr, uint tokens);
+	event Voted(address _addr, bool option, uint votes);
+	event Payout(uint weiPerToken);
     
     function proposal(string _addr, bytes32 _hash, uint _value, uint16 _quorumWeight) {
         require(currentProposal.valueMod == 0); // no vote is ongoing
@@ -96,6 +100,7 @@ contract ModumToken is ERC20Interface {
         }
         
         account.valueModVote = 0;
+		Voted(msg.sender,_vote,votes);
         return votes;
     }
     
@@ -122,7 +127,7 @@ contract ModumToken is ERC20Interface {
         Account storage account = getAccount(_recipient, UpdateMode.Both);
         account.valueMod += _value; //create the tokens and add to recipient
         unlockedTokens += _value; //create tokens
-
+		Minted(_recipient, _value);
     }
     
     function mintFinished() {
@@ -137,8 +142,10 @@ contract ModumToken is ERC20Interface {
     function() payable {
         uint value = msg.value + rounding; //add old runding
         rounding = value % unlockedTokens; //ensure no rounding error
-        totalDropPerUnlockedToken += (value-rounding) / unlockedTokens; //account for locked tokens and add the drop
-    }
+		uint weiPerToken = (value-rounding) / unlockedTokens;
+        totalDropPerUnlockedToken += weiPerToken; //account for locked tokens and add the drop
+		Payout(weiPerToken);
+	}
     
     function getUnlockedTokens() constant returns (uint) {
         return unlockedTokens;
