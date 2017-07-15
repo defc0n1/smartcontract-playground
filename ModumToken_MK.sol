@@ -38,6 +38,7 @@ contract ModumToken is ERC20Interface {
     
     uint avaiableSupply = 0;
     uint lockedSupply = 0;
+    uint lockCorrectedAirdroppedWei = 0;
 
     address owner;
     Proposal proposal;
@@ -49,6 +50,8 @@ contract ModumToken is ERC20Interface {
     string public constant symbol = "MOD";
     
     event Voted(address voter, VoteCollector voteCollector, bytes32 option, uint256 votes);
+    event WeiDropped(uint ethAmount, uint elegibleTokens);
+
     
     function ModumToken(){
         owner = msg.sender;
@@ -62,8 +65,10 @@ contract ModumToken is ERC20Interface {
     
     struct TokenHolder{
         uint lastVoteReceive;
+        uint lastAirDropReceived;
         uint avaiableTokensForVote;
         uint shareTokensAmount;
+        uint weiAirdropAvaiable;
     }
     
      function proposalIsPresent() returns(bool){
@@ -96,6 +101,15 @@ contract ModumToken is ERC20Interface {
         mintingAllowed = false;
     }
     
+    function airDrop() payable{
+        require(!mintingAllowed);
+        uint totSup = avaiableSupply+lockedSupply;
+        require(avaiableSupply != 0);
+        uint lockCorrected = (msg.value*totSup)/avaiableSupply;
+        lockCorrectedAirdroppedWei += lockCorrected;
+        WeiDropped(msg.value, avaiableSupply);
+    }
+    
     function registerProposal(VoteCollector _proposal, uint blockStart, uint blockEnd){
         require(msg.sender == owner);
         require(!proposalIsPresent());
@@ -105,6 +119,7 @@ contract ModumToken is ERC20Interface {
     
     //Gets the holder and calculate current votes, always use this as getter, never the map directly
     function touchAndGet(address account) internal returns(TokenHolder storage){
+        require(!mintingAllowed);
         TokenHolder storage holder =  balances[account];
         if(proposalIsActive()){
             if(holder.lastVoteReceive < proposal.blockStart){
@@ -113,6 +128,12 @@ contract ModumToken is ERC20Interface {
             holder.lastVoteReceive = block.number;
         } else {
             holder.avaiableTokensForVote = 0;
+        }
+        
+        uint remindingDrop = lockCorrectedAirdroppedWei - holder.lastAirDropReceived;
+        if(remindingDrop != 0){
+            holder.weiAirdropAvaiable += (remindingDrop*holder.shareTokensAmount)/(lockedSupply+avaiableSupply);
+            holder.lastAirDropReceived = lockCorrectedAirdroppedWei;
         }
         return holder;
     }
@@ -142,6 +163,14 @@ contract ModumToken is ERC20Interface {
         Voted(msg.sender, proposal.voteCollector, option, votes);
     }
     
+    function withdrawWei(){
+        TokenHolder storage account = touchAndGet(msg.sender);
+        uint eth = account.weiAirdropAvaiable;
+        if(eth == 0) return;
+        account.weiAirdropAvaiable = 0;
+        msg.sender.transfer(eth);
+    }
+    
     function totalSupply() constant returns (uint256 totalSupply){
         return lockedSupply+avaiableSupply;
     }
@@ -151,8 +180,12 @@ contract ModumToken is ERC20Interface {
         return balances[_owner].shareTokensAmount;
     }
     
-    function votingPower(address _owner) constant returns (uint256 balance){
-        return balances[_owner].avaiableTokensForVote;
+    function votingPower(address _owner) returns (uint256 balance){
+        return touchAndGet(_owner).avaiableTokensForVote;
+    }
+    
+    function weiAvaiable(address _owner) returns (uint256 balance){
+        return touchAndGet(_owner).weiAirdropAvaiable;
     }
 
     // Send _value amount of tokens to address _to
@@ -191,6 +224,5 @@ contract ModumToken is ERC20Interface {
     
     function allowance(address _owner, address _spender) constant returns (uint remaining) {
         return allowed[_owner][_spender];
-    }
-    
+    }   
 }
