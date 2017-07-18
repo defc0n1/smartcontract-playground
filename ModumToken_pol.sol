@@ -1,5 +1,7 @@
 pragma solidity ^0.4.10;
 
+import browser/SafeMath.sol";
+
 //https://theethereum.wiki/w/index.php/ERC20_Token_Standard
 contract ERC20Interface {
 
@@ -95,8 +97,8 @@ contract ModumToken is ERC20Interface {
         require(votes > 0);  //voter must have a vote left
         
         if(! _vote) {   //yes votes are default
-            currentProposal.yay -= votes;
-            currentProposal.nay += votes;
+            currentProposal.yay = SafeMath.sub(currentProposal.yay,votes);
+            currentProposal.nay = SafeMath.add(currentProposal.nay,votes);
         }
         
         account.valueModVote = 0;
@@ -108,14 +110,14 @@ contract ModumToken is ERC20Interface {
         require(mintDone); //minting phase needs to be over
         require(msg.sender == owner); //only owner can claim proposal
         require(currentProposal.valueMod > 0); // no proposal active
-        require(now > currentProposal.startTime + votingDuration); // voting has already ended
+        require(now > SafeMath.add(currentProposal.startTime,votingDuration)); // voting has already ended
         if(currentProposal.yay > (currentProposal.nay * currentProposal.quorumWeight) / 100) {
             //It was accepted
             Account storage account = getAccount(owner, UpdateMode.Both);
             uint valueMod = currentProposal.valueMod;
-            account.valueMod += valueMod; //uadd to owner
-            unlockedTokens += valueMod; //unlock
-            lockedTokens -= valueMod; //unlock
+            account.valueMod = SafeMath.add(account.valueMod, valueMod); //uadd to owner
+            unlockedTokens = SafeMath.add(unlockedTokens,valueMod); //unlock
+            lockedTokens = SafeMath.sub(lockedTokens,valueMod); //unlock
         }
         delete currentProposal; //proposal ended
     }
@@ -123,10 +125,10 @@ contract ModumToken is ERC20Interface {
     function mint(address _recipient, uint _value)  {
         require(msg.sender == owner); //only owner can claim proposal
         require(!mintDone); //only during minting
-        require((totalSupply() + _value) <= maxTokens); //do not exceed max
+        require(SafeMath.add(totalSupply(),_value) <= maxTokens); //do not exceed max
         Account storage account = getAccount(_recipient, UpdateMode.Both);
-        account.valueMod += _value; //create the tokens and add to recipient
-        unlockedTokens += _value; //create tokens
+        account.valueMod = SafeMath.add(account.valueMod,_value); //create the tokens and add to recipient
+        unlockedTokens = SafeMath.add(unlockedTokens,_value); //create tokens
 		Minted(_recipient, _value);
     }
     
@@ -140,10 +142,10 @@ contract ModumToken is ERC20Interface {
     //to their token holders
     //Dividend payment / Airdrop
     function() payable {
-        uint value = msg.value + rounding; //add old runding
+        uint value = SafeMath.add(msg.value,rounding); //add old runding
         rounding = value % unlockedTokens; //ensure no rounding error
-		uint weiPerToken = (value-rounding) / unlockedTokens;
-        totalDropPerUnlockedToken += weiPerToken; //account for locked tokens and add the drop
+		uint weiPerToken = SafeMath.div(SafeMath.sub(value,rounding),unlockedTokens);
+        totalDropPerUnlockedToken = SafeMath.add(totalDropPerUnlockedToken,weiPerToken); //account for locked tokens and add the drop
 		Payout(weiPerToken);
 	}
     
@@ -161,7 +163,7 @@ contract ModumToken is ERC20Interface {
     }
     
     function totalSupply() constant returns (uint) {
-        return unlockedTokens + lockedTokens;
+        return SafeMath.add(unlockedTokens,lockedTokens);
     }
     
     function balanceOf(address _owner) constant returns (uint balance) {
@@ -182,9 +184,9 @@ contract ModumToken is ERC20Interface {
 		}
 		
 		if(mode == UpdateMode.Wei || mode == UpdateMode.Both){
-            uint bonus = (totalDropPerUnlockedToken -  account.lastAirdropWei);
+            uint bonus = SafeMath.sub(totalDropPerUnlockedToken,account.lastAirdropWei);
             if(bonus != 0){
-    			account.bonusWei += (bonus * account.valueMod);
+    			account.bonusWei = SafeMath.add(account.bonusWei ,SafeMath.mul(bonus,account.valueMod));
     			account.lastAirdropWei = totalDropPerUnlockedToken;
     		}
 		}
@@ -198,8 +200,8 @@ contract ModumToken is ERC20Interface {
         if (tmpFrom.valueMod >= _value  && _value > 0){
                 Account storage from = getAccount(msg.sender, UpdateMode.Both);
                 Account storage to = getAccount(_to, UpdateMode.Both);
-                from.valueMod -= _value;
-                to.valueMod += _value;
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod,_value);
                 Transfer(msg.sender, _to, _value);
                 return true;
         } 
@@ -212,9 +214,9 @@ contract ModumToken is ERC20Interface {
         if (tmpFrom.valueMod >= _value  && _value > 0 && allowed[_from][msg.sender] >= _value){
                 Account storage from = getAccount(msg.sender, UpdateMode.Both);
                 Account storage to = getAccount(_to, UpdateMode.Both);
-                from.valueMod -= _value;
-                to.valueMod += _value;
-                allowed[_from][msg.sender] -= _value;
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod ,_value);
+                allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender],_value);
                 Transfer(msg.sender, _to, _value);
                 return true;
         } 
