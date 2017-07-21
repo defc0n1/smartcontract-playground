@@ -1,5 +1,7 @@
 pragma solidity ^0.4.10;
 
+import browser/SafeMath.sol";
+
 //https://theethereum.wiki/w/index.php/ERC20_Token_Standard
 contract ERC20Interface {
 
@@ -45,7 +47,7 @@ contract ModumToken is ERC20Interface {
 		uint valueMod;      // the owned tokens
     }
     
-    uint bonusLockCorrectedWei = 0;         //totally airdropped eth with a correction to accpount for locked tokens
+    uint totalDropPerUnlockedToken = 0;     //totally airdropped eth per unlocked token
     uint rounding = 0;                      //airdrops not accounted yet to make system rounding error proof
 
     uint unlockedTokens = 0;                //tokens that can vote, transfer, receive dividend
@@ -73,9 +75,12 @@ contract ModumToken is ERC20Interface {
     function ModumToken() {
         owner = msg.sender;
     }
+	
+	event Minted(address _addr, uint tokens);
+	event Voted(address _addr, bool option, uint votes);
+	event Payout(uint weiPerToken);
     
     function proposal(string _addr, bytes32 _hash, uint _value, uint16 _quorumWeight) {
-        require(mintDone); //minting phase needs to be over
         require(currentProposal.valueMod == 0); // no vote is ongoing
         require(msg.sender == owner); // proposal ony by onwer
         require(lockedTokens >= _value); //proposal cannot be larger than remaining locked tokens
@@ -86,18 +91,18 @@ contract ModumToken is ERC20Interface {
     }
     
     function vote(bool _vote) returns (uint) {
-        require(mintDone); //minting phase needs to be over
         require(isVoteOngoing()); // vote needs to be ongoing
         Account storage account = getAccount(msg.sender, UpdateMode.Vote);
         uint votes = account.valueModVote;  //avaiable votes
         require(votes > 0);  //voter must have a vote left
         
         if(! _vote) {   //yes votes are default
-            currentProposal.yay -= votes;
-            currentProposal.nay += votes;
+            currentProposal.yay = SafeMath.sub(currentProposal.yay,votes);
+            currentProposal.nay = SafeMath.add(currentProposal.nay,votes);
         }
         
         account.valueModVote = 0;
+		Voted(msg.sender,_vote,votes);
         return votes;
     }
     
@@ -105,14 +110,14 @@ contract ModumToken is ERC20Interface {
         require(mintDone); //minting phase needs to be over
         require(msg.sender == owner); //only owner can claim proposal
         require(currentProposal.valueMod > 0); // no proposal active
-        require(now > currentProposal.startTime + votingDuration); // voting has already ended
+        require(now > SafeMath.add(currentProposal.startTime,votingDuration)); // voting has already ended
         if(currentProposal.yay > (currentProposal.nay * currentProposal.quorumWeight) / 100) {
             //It was accepted
             Account storage account = getAccount(owner, UpdateMode.Both);
             uint valueMod = currentProposal.valueMod;
-            account.valueMod += valueMod; //uadd to owner
-            unlockedTokens += valueMod; //unlock
-            lockedTokens -= valueMod; //unlock
+            account.valueMod = SafeMath.add(account.valueMod, valueMod); //uadd to owner
+            unlockedTokens = SafeMath.add(unlockedTokens,valueMod); //unlock
+            lockedTokens = SafeMath.sub(lockedTokens,valueMod); //unlock
         }
         delete currentProposal; //proposal ended
     }
@@ -120,11 +125,11 @@ contract ModumToken is ERC20Interface {
     function mint(address _recipient, uint _value)  {
         require(msg.sender == owner); //only owner can claim proposal
         require(!mintDone); //only during minting
-        require((totalSupply() + _value) <= maxTokens); //do not exceed max
-        Account storage account = getAccount(_recipient, UpdateMode.None);
-        account.valueMod += _value; //create the tokens and add to recipient
-        unlockedTokens += _value; //create tokens
-
+        require(SafeMath.add(totalSupply(),_value) <= maxTokens); //do not exceed max
+        Account storage account = getAccount(_recipient, UpdateMode.Both);
+        account.valueMod = SafeMath.add(account.valueMod,_value); //create the tokens and add to recipient
+        unlockedTokens = SafeMath.add(unlockedTokens,_value); //create tokens
+		Minted(_recipient, _value);
     }
     
     function mintFinished() {
@@ -137,11 +142,12 @@ contract ModumToken is ERC20Interface {
     //to their token holders
     //Dividend payment / Airdrop
     function() payable {
-        require(mintDone);      //only after minting
-        uint value = msg.value + rounding; //add old runding
+        uint value = SafeMath.add(msg.value,rounding); //add old runding
         rounding = value % unlockedTokens; //ensure no rounding error
-        bonusLockCorrectedWei += ((value-rounding) * totalSupply()) / unlockedTokens; //account for locked tokens and add the drop
-    }
+		uint weiPerToken = SafeMath.div(SafeMath.sub(value,rounding),unlockedTokens);
+        totalDropPerUnlockedToken = SafeMath.add(totalDropPerUnlockedToken,weiPerToken); //account for locked tokens and add the drop
+		Payout(weiPerToken);
+	}
     
     function getUnlockedTokens() constant returns (uint) {
         return unlockedTokens;
@@ -149,15 +155,15 @@ contract ModumToken is ERC20Interface {
     
     function claimBonus() {
         Account storage account = getAccount(msg.sender, UpdateMode.Wei);
-        uint sendValue = account.bonusWei;
+        uint sendValue = account.bonusWei; //fetch the values
         if(sendValue != 0){
-            account.bonusWei = 0;
-            msg.sender.transfer(sendValue);
+            account.bonusWei = 0;           //set to zero (before against reentry) 
+            msg.sender.transfer(sendValue); //send the bonus to the correct account
         }
     }
     
     function totalSupply() constant returns (uint) {
-        return unlockedTokens + lockedTokens;
+        return SafeMath.add(unlockedTokens,lockedTokens);
     }
     
     function balanceOf(address _owner) constant returns (uint balance) {
@@ -168,9 +174,7 @@ contract ModumToken is ERC20Interface {
         return currentProposal.valueMod != 0 && now >= currentProposal.startTime && now < currentProposal.startTime + votingDuration;
     }
     
-	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){
-        if(mode != UpdateMode.None) require(mintDone);
-        
+	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){        
         Account storage account = accounts[_addr];
 		if(mode == UpdateMode.Vote || mode == UpdateMode.Both){
 		    if(isVoteOngoing() && account.lastProposalStartTime < currentProposal.startTime) { // the user did set his token power yet
@@ -180,10 +184,10 @@ contract ModumToken is ERC20Interface {
 		}
 		
 		if(mode == UpdateMode.Wei || mode == UpdateMode.Both){
-            uint bonus = (bonusLockCorrectedWei -  account.lastAirdropWei);
+            uint bonus = SafeMath.sub(totalDropPerUnlockedToken,account.lastAirdropWei);
             if(bonus != 0){
-    			account.bonusWei += (bonus * account.valueMod) / totalSupply();
-    			account.lastAirdropWei = bonusLockCorrectedWei;
+    			account.bonusWei = SafeMath.add(account.bonusWei ,SafeMath.mul(bonus,account.valueMod));
+    			account.lastAirdropWei = totalDropPerUnlockedToken;
     		}
 		}
 		
@@ -196,8 +200,8 @@ contract ModumToken is ERC20Interface {
         if (tmpFrom.valueMod >= _value  && _value > 0){
                 Account storage from = getAccount(msg.sender, UpdateMode.Both);
                 Account storage to = getAccount(_to, UpdateMode.Both);
-                from.valueMod -= _value;
-                to.valueMod += _value;
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod,_value);
                 Transfer(msg.sender, _to, _value);
                 return true;
         } 
@@ -210,9 +214,9 @@ contract ModumToken is ERC20Interface {
         if (tmpFrom.valueMod >= _value  && _value > 0 && allowed[_from][msg.sender] >= _value){
                 Account storage from = getAccount(msg.sender, UpdateMode.Both);
                 Account storage to = getAccount(_to, UpdateMode.Both);
-                from.valueMod -= _value;
-                to.valueMod += _value;
-                allowed[_from][msg.sender] -= _value;
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod ,_value);
+                allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender],_value);
                 Transfer(msg.sender, _to, _value);
                 return true;
         } 
