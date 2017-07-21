@@ -1,5 +1,7 @@
 pragma solidity ^0.4.10;
 
+import "browser/SafeMath.sol";
+
 //https://theethereum.wiki/w/index.php/ERC20_Token_Standard
 contract ERC20Interface {
 
@@ -32,200 +34,202 @@ contract ERC20Interface {
 contract ModumToken is ERC20Interface {
     
     address owner;
-    mapping (address => Account) accounts;
+    mapping(address => Account) accounts;
     mapping(address => mapping (address => uint256)) allowed;
-    struct Account {
-		uint bonusWei;
-		uint lastAirdropWei;
-		uint valueMod;
-		uint valueModVote;
-        uint lastProposalStartTime;
+    
+    enum UpdateMode{None,Wei,Vote,Both}
+
+	struct Account {
+	    uint lastProposalStartBlockNr; //For checking at which proposal valueModVote was last updated 
+		uint lastAirdropWei; //For checking after which airDrop bonusWei was last updated 
+		uint bonusWei;      //airDrop/Dividend payout avaiable for withdrawl
+		uint valueModVote;  // votes avaiable for voting on active Proposal
+		uint valueMod;      // the owned tokens
     }
     
-    uint bonusWei;
-    
-    uint unlockedTokens;
-    uint lockedTokens = 10 * 1000 * 1000;
-    uint maxTokens = 30 * 1000 * 1000;
-    //https://www.epochconverter.com -> 1.9.2017 + 1 week
-    bool mintDone = false;
-    uint votingDuration = 2 minutes;
-    uint8 quorumWeight = 200; //100 -> is 1, 150 is 1.5, with 200 you need 2/3 of the votes
+    uint totalDropPerUnlockedToken = 0;     //totally airdropped eth per unlocked token
+    uint rounding = 0;                      //airdrops not accounted yet to make system rounding error proof
+
+    uint unlockedTokens = 0;                //tokens that can vote, transfer, receive dividend
+    uint lockedTokens = 10 * 1000 * 1000;   //token that need to be unlocked by voting
+    uint maxTokens = 30 * 1000 * 1000;      //max distributable tokens
+
+    bool mintDone = false;                  //distinguisher for minting phase
+    uint votingDurationBlocks = 15 ;        //15x14s = 210s = 3.5min 
     
     string public constant name = "Modum Token";
     string public constant symbol = "MOD";
     
-    uint rounding = 0;
-    
     struct Proposal {
-        string addr;
-        bytes32 hash;
-        uint valueMod; //proposal with 0 amount is invalid
-        uint startTime;
-        uint yay;
+        string addr;        //Uri for more info
+        bytes32 hash;       //Hash of the uri content for checking 
+        uint valueMod;      //token to unlock: proposal with 0 amount is invalid
+        uint startBlockNr;     
+        uint yay;   
         uint nay;
     }
     
-    Proposal currentProposal;
+    Proposal currentProposal; 
 
     function ModumToken() {
         owner = msg.sender;
-        //we are not a bonus member, so don't add msg.sender to bonusMembers
-        accounts[msg.sender] = Account(0,0,0,0,0);
     }
+	
+	event Minted(address _addr, uint tokens);
+	event Voted(address _addr, bool option, uint votes);
+	event Payout(uint weiPerToken);
     
-    function proposal(string _addr, bytes32 _hash, uint _value) returns (bool) {
-        require(mintDone); //minting phase needs to be over
+    function proposal(string _addr, bytes32 _hash, uint _value) {
         require(currentProposal.valueMod == 0); // no vote is ongoing
         require(msg.sender == owner); // proposal ony by onwer
-        require(lockedTokens >= _value); //proposal cannot be larger than locked tokens
-        require(_value > 0);
-        uint _yay = unlockedTokens; // default is yes // discussion
+        require(lockedTokens >= _value); //proposal cannot be larger than remaining locked tokens
+        require(_value > 0);            //proposal with 0 unlock are invalid
+        uint _yay = 0;
         uint _nay = 0;
-        currentProposal = Proposal(_addr, _hash, _value, now, _yay, _nay);
-        return true;
+        currentProposal = Proposal(_addr, _hash, _value, block.number, _yay, _nay);
     }
     
     function vote(bool _vote) returns (uint) {
-        require(isVoteOngoing()); // vote is ongoing
-        votingPower(msg.sender);
-        require(accounts[msg.sender].valueModVote > 0);
+        require(isVoteOngoing()); // vote needs to be ongoing
+        Account storage account = getAccount(msg.sender, UpdateMode.Vote);
+        uint votes = account.valueModVote;  //avaiable votes
+        require(votes > 0);  //voter must have a vote left
         
         if(! _vote) {
-            currentProposal.yay -= accounts[msg.sender].valueModVote;
-            currentProposal.nay += accounts[msg.sender].valueModVote;
+            currentProposal.nay = SafeMath.add(currentProposal.nay,votes);
+        } else {
+            currentProposal.yay = SafeMath.add(currentProposal.yay,votes);
         }
-        accounts[msg.sender].valueModVote = 0;
-        return accounts[msg.sender].valueModVote;
+        
+        account.valueModVote = 0;
+		Voted(msg.sender,_vote,votes);
+        return votes;
     }
     
-    function claimProposal() returns (bool) {
-        require(msg.sender == owner);
-        require(currentProposal.valueMod > 0 && now > currentProposal.startTime + votingDuration); // vote just ended
-        if(currentProposal.yay > (currentProposal.nay * quorumWeight) / 100) {
-            accounts[msg.sender].valueMod += currentProposal.valueMod;
-            unlockedTokens += currentProposal.valueMod;
-            lockedTokens -= currentProposal.valueMod;
+    function claimProposal(){
+        require(mintDone); //minting phase needs to be over
+        require(msg.sender == owner); //only owner can claim proposal
+        require(currentProposal.valueMod > 0); // no proposal active
+        require(now > SafeMath.add(currentProposal.startBlockNr,votingDurationBlocks)); // voting has already ended
+        if(currentProposal.yay > currentProposal.nay) {
+            //It was accepted
+            Account storage account = getAccount(owner, UpdateMode.Both);
+            uint valueMod = currentProposal.valueMod;
+            account.valueMod = SafeMath.add(account.valueMod, valueMod); //uadd to owner
+            unlockedTokens = SafeMath.add(unlockedTokens,valueMod); //unlock
+            lockedTokens = SafeMath.sub(lockedTokens,valueMod); //unlock
         }
-        delete currentProposal;
-        return true;
+        delete currentProposal; //proposal ended
     }
     
-    function mint(address _recipient, uint _value) returns (bool) {
-        require(msg.sender == owner);
-        if(!mintDone && (totalSupply() + _value) <= maxTokens) {
-            
-            weiPower(_recipient);
-            
-            accounts[_recipient].valueMod += _value;
-            unlockedTokens += _value;
-            return true;
-        }
-        return false;
+    //TODO: do a bulk version
+    function mint(address _recipient, uint _value)  {
+        require(msg.sender == owner); //only owner can claim proposal
+        require(!mintDone); //only during minting
+        require(SafeMath.add(totalSupply(),_value) <= maxTokens); //do not exceed max
+        Account storage account = getAccount(_recipient, UpdateMode.Both);
+        account.valueMod = SafeMath.add(account.valueMod,_value); //create the tokens and add to recipient
+        unlockedTokens = SafeMath.add(unlockedTokens,_value); //create tokens
+		Minted(_recipient, _value);
     }
     
-    function mintFinished() returns (bool) {
-        require(msg.sender == owner);
-        mintDone = true;
-        return true;
+    function mintFinished() {
+        require(msg.sender == owner); //only owner
+        require(!mintDone); //only in minting
+        mintDone = true; //end the minting
     }
     
     //default function to pay bonus, anybody that sends eth to this contract will distribute the wei
     //to their token holders
+    //Dividend payment / Airdrop
     function() payable {
-        uint value = msg.value + rounding;
-        rounding = value % unlockedTokens;
-        bonusWei += ((value-rounding) * totalSupply()) / unlockedTokens;
-    }
+        uint value = SafeMath.add(msg.value,rounding); //add old runding
+        rounding = value % unlockedTokens; //ensure no rounding error
+		uint weiPerToken = SafeMath.div(SafeMath.sub(value,rounding),unlockedTokens);
+        totalDropPerUnlockedToken = SafeMath.add(totalDropPerUnlockedToken,weiPerToken); //account for locked tokens and add the drop
+		Payout(weiPerToken);
+	}
     
     function getUnlockedTokens() constant returns (uint) {
         return unlockedTokens;
     }
     
-    function claimBonus() returns (bool) {
-        weiPower(msg.sender);
-        uint sendValue = accounts[msg.sender].bonusWei;
-        accounts[msg.sender].bonusWei = 0;
-        accounts[msg.sender].lastAirdropWei = bonusWei;
-        msg.sender.transfer(sendValue);
-        return true;
+    function claimBonus() {
+        Account storage account = getAccount(msg.sender, UpdateMode.Wei);
+        uint sendValue = account.bonusWei; //fetch the values
+        if(sendValue != 0){
+            account.bonusWei = 0;           //set to zero (before against reentry) 
+            msg.sender.transfer(sendValue); //send the bonus to the correct account
+        }
     }
     
     function totalSupply() constant returns (uint) {
-        return unlockedTokens + lockedTokens;
+        return SafeMath.add(unlockedTokens,lockedTokens);
     }
+    
     function balanceOf(address _owner) constant returns (uint balance) {
         return accounts[_owner].valueMod;
     }
     
     function isVoteOngoing() internal returns (bool)  {
-        return currentProposal.valueMod > 0 && now >= currentProposal.startTime && now < currentProposal.startTime + votingDuration;
+        return currentProposal.valueMod != 0 && block.number >= currentProposal.startBlockNr && block.number < currentProposal.startBlockNr + votingDurationBlocks;
     }
     
-    function votingPower(address _addr) internal {
-        if(accounts[_addr].lastProposalStartTime < currentProposal.startTime) { // the user did set his token power yet
-            accounts[_addr].valueModVote = accounts[_addr].valueMod;
-            accounts[_addr].lastProposalStartTime = currentProposal.startTime;
-        }
-    }
-    
-    function weiPower(address _addr) internal {
-        uint bonus = (bonusWei -  accounts[_addr].lastAirdropWei);
-        accounts[_addr].bonusWei += (bonus * accounts[_addr].valueMod) / totalSupply();
-        accounts[_addr].lastAirdropWei = bonusWei;
+	function getAccount(address _addr, UpdateMode mode) internal returns(Account storage){        
+        Account storage account = accounts[_addr];
+		if(mode == UpdateMode.Vote || mode == UpdateMode.Both){
+		    if(isVoteOngoing() && account.lastProposalStartBlockNr < currentProposal.startBlockNr) { // the user did set his token power yet
+                account.valueModVote = account.valueMod;
+                account.lastProposalStartBlockNr = currentProposal.startBlockNr;
+            }
+		}
+		
+		if(mode == UpdateMode.Wei || mode == UpdateMode.Both){
+            uint bonus = SafeMath.sub(totalDropPerUnlockedToken,account.lastAirdropWei);
+            if(bonus != 0){
+    			account.bonusWei = SafeMath.add(account.bonusWei ,SafeMath.mul(bonus,account.valueMod));
+    			account.lastAirdropWei = totalDropPerUnlockedToken;
+    		}
+		}
+		
+		return account;
     }
     
     function transfer(address _to, uint _value) returns (bool success) {
-        if (accounts[msg.sender].valueMod >= _value 
-            && _value > 0
-            && accounts[_to].valueMod + _value > accounts[_to].valueMod) {
-                
-                //if we are in a voting phase, make sure we won't change the voting power
-                if(isVoteOngoing()) {
-                    votingPower(msg.sender);
-                    votingPower(_to);
-                }
-                
-                weiPower(msg.sender);
-                weiPower(_to);
-                
-                accounts[msg.sender].valueMod -= _value;
-                accounts[_to].valueMod += _value;
+        require(mintDone);
+        Account storage tmpFrom = getAccount(msg.sender, UpdateMode.None);
+        if (tmpFrom.valueMod >= _value  && _value > 0){
+                Account storage from = getAccount(msg.sender, UpdateMode.Both);
+                Account storage to = getAccount(_to, UpdateMode.Both);
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod,_value);
                 Transfer(msg.sender, _to, _value);
                 return true;
-        } else {
-            return false;
-        }
+        } 
+        return false;
     }
     
     function transferFrom(address _from, address _to, uint _value) returns (bool success) {
-        if (accounts[_from].valueMod >= _value
-            && allowed[_from][msg.sender] >= _value
-            && _value > 0
-            && accounts[_to].valueMod + _value > accounts[_to].valueMod) {
-                
-                //if we are in a voting phase, make sure we won't change the voting power
-                if(isVoteOngoing()) {
-                    votingPower(_from);
-                    votingPower(_to);
-                }
-                
-                weiPower(_from);
-                weiPower(_to);
-                
-                accounts[_from].valueMod -= _value;
-                allowed[_from][msg.sender] -= _value;
-                accounts[_to].valueMod += _value;
+        require(mintDone);
+        Account storage tmpFrom = getAccount(msg.sender, UpdateMode.None);
+        if (tmpFrom.valueMod >= _value  && _value > 0 && allowed[_from][msg.sender] >= _value){
+                Account storage from = getAccount(msg.sender, UpdateMode.Both);
+                Account storage to = getAccount(_to, UpdateMode.Both);
+                from.valueMod = SafeMath.sub(from.valueMod,_value);
+                to.valueMod = SafeMath.add(to.valueMod ,_value);
+                allowed[_from][msg.sender] = SafeMath.sub(allowed[_from][msg.sender],_value);
+                Transfer(msg.sender, _to, _value);
                 return true;
-        } else {
-            return false;
-        }
+        } 
+        return false;
     }
+    
     function approve(address _spender, uint _value) returns (bool success) {
         allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
     }
+    
     function allowance(address _owner, address _spender) constant returns (uint remaining) {
         return allowed[_owner][_spender];
     }
