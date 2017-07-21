@@ -29,8 +29,4 @@ library SafeMath {
     assert(c >= a);
     return c;
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> f6911c84a87abf911473c4c20f21314d7e3b18f1
