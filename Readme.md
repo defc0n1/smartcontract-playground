@@ -1,3 +1,8 @@
+# Playgroud for Smart Contracts
+
+This is our playgroud for smart contracts. Once the contract is mature, the contract will be moved to another repository, such as
+[tokenapp-smartcontract](https://github.com/modum-io/tokenapp-smartcontract).
+
 # Contracts for Measuring Temperature
 
 There are two contracts to measure and record temperature, variant A and B. Variant B is 
