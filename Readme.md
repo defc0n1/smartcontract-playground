@@ -19,7 +19,7 @@ and records the last n failures.
 
 ## Deployment
 
-Currently deployment is done wyth the script prepare.sh which removes the lines breaks, creates an initial JavaScript file that 
+Currently deployment is done with the script prepare.sh which removes the lines breaks, creates an initial JavaScript file that 
 creates the contract 
 
 ```javascript
